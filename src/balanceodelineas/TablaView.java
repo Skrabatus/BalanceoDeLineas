@@ -37,6 +37,26 @@ public class TablaView {
                 agregarFila();
             }
         });
+        JButton tiempoCicloButton = new JButton("Determinar Tiempo Ciclo");
+        tiempoCicloButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int tiempoTotal = 0;
+
+                // Calcular el tiempo total del ciclo
+                for (int i = 0; i < tableModel.getRowCount(); i++) {
+                    int tiempo = (int) tableModel.getValueAt(i, 1);
+                    tiempoTotal += tiempo;
+                }
+
+                // Mostrar el resultado
+                JOptionPane.showMessageDialog(frame, "El tiempo total del ciclo es: " + tiempoTotal + " segundos",
+                        "Tiempo del Ciclo", JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
+
+// Agregar el botón al panel inferior
+        panelInferior.add(tiempoCicloButton);
 
         JButton relacionesButton = new JButton("Mostrar Relaciones");
         relacionesButton.addActionListener(new ActionListener() {
