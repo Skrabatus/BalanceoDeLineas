@@ -53,21 +53,38 @@ class RelacionesPanel extends JPanel {
     }
 
     @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D g2d = (Graphics2D) g;
+protected void paintComponent(Graphics g) {
+    super.paintComponent(g);
+    Graphics2D g2d = (Graphics2D) g;
 
-        // Configurar estilo gráfico
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setFont(new Font("Arial", Font.PLAIN, 12));
+    // Configurar estilo gráfico
+    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    g2d.setFont(new Font("Arial", Font.PLAIN, 12));
 
-        int x = 50; // Posición inicial
-        int y = 100;
-        int espacioHorizontal = 150; // Espacio entre tareas
-        int radio = 40; // Radio de los círculos
+    int espacioHorizontal = 150; // Espacio entre columnas
+    int espacioVertical = 100;  // Espacio entre filas
+    int radio = 40; // Radio de los círculos
 
-        // Dibujar las tareas
-        for (Tarea tarea : tareas) {
+    // Agrupar tareas por precedencia
+    Map<String, ArrayList<Tarea>> precedenciaMap = new HashMap<>();
+    for (Tarea tarea : tareas) {
+        String precedencia = tarea.precedencia != null && !tarea.precedencia.equals("-") 
+                             ? tarea.precedencia 
+                             : "root";
+        precedenciaMap.putIfAbsent(precedencia, new ArrayList<>());
+        precedenciaMap.get(precedencia).add(tarea);
+    }
+
+    // Variables de posición
+    int x = 50; // Posición inicial horizontal
+    int yInicial = 100; // Posición inicial vertical
+
+    // Dibujar las tareas por niveles
+    for (Map.Entry<String, ArrayList<Tarea>> entry : precedenciaMap.entrySet()) {
+        ArrayList<Tarea> grupo = entry.getValue();
+        int y = yInicial;
+
+        for (Tarea tarea : grupo) {
             // Dibujar el círculo
             g2d.setColor(Color.LIGHT_GRAY);
             g2d.fillOval(x - radio / 2, y - radio / 2, radio, radio);
@@ -78,28 +95,33 @@ class RelacionesPanel extends JPanel {
             g2d.drawString(tarea.nombre, x - 10, y + 5);
             g2d.drawString(String.valueOf(tarea.tiempo) + " seg", x - 20, y - 30);
 
-            // Guardar la posición para dibujar flechas después
+            // Guardar la posición para flechas
             posiciones.put(tarea.nombre, new Point(x, y));
 
-            // Avanzar al siguiente nodo horizontalmente
-            x += espacioHorizontal;
+            // Avanzar verticalmente
+            y += espacioVertical;
         }
 
-        // Dibujar las flechas según las precedencias
-        for (Tarea tarea : tareas) {
-            if (tarea.precedencia != null && posiciones.containsKey(tarea.precedencia)) {
-                Point origen = posiciones.get(tarea.precedencia);
-                Point destino = posiciones.get(tarea.nombre);
+        // Avanzar horizontalmente al siguiente grupo
+        x += espacioHorizontal;
+    }
 
-                // Dibujar línea entre los nodos
-                g2d.setColor(Color.BLACK);
-                g2d.drawLine(origen.x, origen.y, destino.x - radio / 2, destino.y);
+    // Dibujar las flechas según las precedencias
+    for (Tarea tarea : tareas) {
+        if (tarea.precedencia != null && posiciones.containsKey(tarea.precedencia)) {
+            Point origen = posiciones.get(tarea.precedencia);
+            Point destino = posiciones.get(tarea.nombre);
 
-                // Dibujar la flecha
-                dibujarFlecha(g2d, origen.x, origen.y, destino.x - radio / 2, destino.y);
-            }
+            // Dibujar línea entre los nodos
+            g2d.setColor(Color.BLACK);
+            g2d.drawLine(origen.x, origen.y, destino.x - radio / 2, destino.y);
+
+            // Dibujar la flecha
+            dibujarFlecha(g2d, origen.x, origen.y, destino.x - radio / 2, destino.y);
         }
     }
+}
+
 
     private void dibujarFlecha(Graphics2D g2d, int x1, int y1, int x2, int y2) {
         int flechaLongitud = 10;
