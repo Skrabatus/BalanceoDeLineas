@@ -12,6 +12,7 @@ public class TablaView {
     private JTextField tiempoProduccionField;
     private JTextField produccionRequeridaField;
     private double tiempoCiclo = 0; // Variable para almacenar el tiempo de ciclo calculado
+    private ArrayList<Tarea> tareas; // Lista para almacenar las tareas
 
     public TablaView() {
         // Crear la ventana
@@ -19,7 +20,7 @@ public class TablaView {
         frame.setSize(600, 400);
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setLayout(new BorderLayout());
-
+        tareas = new ArrayList<>(); // Inicializar la lista de tareas
         // Crear el panel superior para los inputs
         JPanel panelSuperior = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JLabel tiempoProduccionLabel = new JLabel("Tiempo de producción por día (segs):");
@@ -96,6 +97,21 @@ public class TablaView {
                         JOptionPane.ERROR_MESSAGE);
             }
         });
+        JButton estacionesButton = new JButton("Calcular Estaciones");
+        estacionesButton.addActionListener(e -> {
+            if (tiempoCiclo <= 0) {
+                JOptionPane.showMessageDialog(frame,
+                        "Debe calcular el ciclo de la estación antes de asignar tareas.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            EstacionesView estacionesView = new EstacionesView(tiempoCiclo, tareas);
+            estacionesView.mostrar();
+        });
+        panelInferior.add(estacionesButton);
+
 
 
 // Agregar el botón al panel inferior
@@ -184,6 +200,12 @@ public class TablaView {
             // Validar que el tiempo sea un número entero
             try {
                 int tiempo = Integer.parseInt(tiempoStr); // Validar que sea un número
+
+                // Crear y agregar la nueva tarea
+                Tarea nuevaTarea = new Tarea(tarea, tiempo, precedencia);
+                tareas.add(nuevaTarea);
+
+                // Agregar a la tabla
                 tableModel.addRow(new Object[]{tarea, tiempo, precedencia});
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(frame, "El tiempo debe ser un número válido.", "Error", JOptionPane.ERROR_MESSAGE);
