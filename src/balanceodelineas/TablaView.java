@@ -9,6 +9,9 @@ public class TablaView {
     private JFrame frame;
     private JTable table;
     private DefaultTableModel tableModel;
+    private JTextField tiempoProduccionField;
+    private JTextField produccionRequeridaField;
+    private double tiempoCiclo = 0; // Variable para almacenar el tiempo de ciclo calculado
 
     public TablaView() {
         // Crear la ventana
@@ -16,6 +19,19 @@ public class TablaView {
         frame.setSize(600, 400);
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setLayout(new BorderLayout());
+
+        // Crear el panel superior para los inputs
+        JPanel panelSuperior = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JLabel tiempoProduccionLabel = new JLabel("Tiempo de producción por día (segs):");
+        tiempoProduccionField = new JTextField(10); // Campo para tiempo de producción
+        JLabel produccionRequeridaLabel = new JLabel("Producción requerida por día (uds):");
+        produccionRequeridaField = new JTextField(10); // Campo para producción requerida
+
+        // Añadir componentes al panel superior
+        panelSuperior.add(tiempoProduccionLabel);
+        panelSuperior.add(tiempoProduccionField);
+        panelSuperior.add(produccionRequeridaLabel);
+        panelSuperior.add(produccionRequeridaField);
 
         // Columnas de la tabla
         String[] columnNames = {"Tarea", "Tiempo tarea (seg)", "Precedencia"};
@@ -28,61 +44,95 @@ public class TablaView {
         JScrollPane scrollPane = new JScrollPane(table);
         table.setFillsViewportHeight(true);
 
-        // Panel inferior con botón para agregar datos
+        // Panel inferior con botones
         JPanel panelInferior = new JPanel();
         JButton agregarButton = new JButton("Agregar Tarea");
-        agregarButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                agregarFila();
-            }
-        });
-        JButton tiempoCicloButton = new JButton("Determinar Tiempo Ciclo");
-        tiempoCicloButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int tiempoTotal = 0;
-
-                // Calcular el tiempo total del ciclo
-                for (int i = 0; i < tableModel.getRowCount(); i++) {
-                    int tiempo = (int) tableModel.getValueAt(i, 1);
-                    tiempoTotal += tiempo;
-                }
-
-                // Mostrar el resultado
-                JOptionPane.showMessageDialog(frame, "El tiempo total del ciclo es: " + tiempoTotal + " segundos",
-                        "Tiempo del Ciclo", JOptionPane.INFORMATION_MESSAGE);
-            }
-        });
-
-// Agregar el botón al panel inferior
-        panelInferior.add(tiempoCicloButton);
+        agregarButton.addActionListener(e -> agregarFila());
 
         JButton relacionesButton = new JButton("Mostrar Relaciones");
-        relacionesButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // Convertir los datos de la tabla a una lista de Tareas
-                ArrayList<Tarea> tareas = new ArrayList<>();
-                for (int i = 0; i < tableModel.getRowCount(); i++) {
-                    String nombre = (String) tableModel.getValueAt(i, 0);
-                    int tiempo = (int) tableModel.getValueAt(i, 1);
-                    String precedencia = (String) tableModel.getValueAt(i, 2);
-                    tareas.add(new Tarea(nombre, tiempo, precedencia));
-                }
-
-                // Mostrar la ventana de relaciones
-                RelacionesView relacionesView = new RelacionesView(tareas);
-                relacionesView.mostrar();
-            }
-        });
+        relacionesButton.addActionListener(e -> mostrarRelaciones());
 
         panelInferior.add(agregarButton);
         panelInferior.add(relacionesButton);
+        
+        JButton calcularCicloButton = new JButton("Calcular Ciclo de Estación");
+        calcularCicloButton.addActionListener(e -> {
+            try {
+                String tiempoProduccionStr = tiempoProduccionField.getText();
+                String produccionRequeridaStr = produccionRequeridaField.getText();
 
-        // Agregar componentes a la ventana
-        frame.add(scrollPane, BorderLayout.CENTER);
-        frame.add(panelInferior, BorderLayout.SOUTH);
+                if (tiempoProduccionStr.isEmpty() || produccionRequeridaStr.isEmpty()) {
+                    JOptionPane.showMessageDialog(frame,
+                            "Por favor, complete ambos campos: tiempo de producción y producción requerida.",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                double tiempoProduccionMinutos = Double.parseDouble(tiempoProduccionStr);
+                int produccionRequerida = Integer.parseInt(produccionRequeridaStr);
+
+                if (tiempoProduccionMinutos <= 0 || produccionRequerida <= 0) {
+                    JOptionPane.showMessageDialog(frame,
+                            "Ambos valores deben ser mayores a cero.",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // Calcular el ciclo de la estación
+                tiempoCiclo = (tiempoProduccionMinutos * 60) / produccionRequerida;
+
+                // Mostrar el resultado
+                JOptionPane.showMessageDialog(frame,
+                        "El ciclo de la estación de trabajo es: " + String.format("%.2f", tiempoCiclo) + " segundos.",
+                        "Resultado",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(frame,
+                        "Asegúrese de ingresar valores numéricos válidos.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+
+// Agregar el botón al panel inferior
+        panelInferior.add(calcularCicloButton);
+        JButton calcularEstacionesButton = new JButton("Calcular Número de Estaciones");
+        calcularEstacionesButton.addActionListener(e -> {
+            if (tiempoCiclo <= 0) {
+                JOptionPane.showMessageDialog(frame,
+                        "Primero debe calcular el ciclo de la estación.",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Sumar los tiempos de las tareas
+            double sumaTiemposTareas = 0;
+            for (int i = 0; i < tableModel.getRowCount(); i++) {
+                sumaTiemposTareas += (int) tableModel.getValueAt(i, 1);
+            }
+
+            // Calcular el número mínimo teórico de estaciones
+            double numEstaciones = sumaTiemposTareas / tiempoCiclo;
+
+            // Mostrar el resultado
+            JOptionPane.showMessageDialog(frame,
+                    "El número mínimo teórico de estaciones es: " + String.format("%.2f", numEstaciones),
+                    "Resultado",
+                    JOptionPane.INFORMATION_MESSAGE);
+        });
+
+// Agregar el botón al panel inferior
+        panelInferior.add(calcularEstacionesButton);
+
+        // Agregar los componentes a la ventana
+        frame.add(panelSuperior, BorderLayout.NORTH); // Inputs en la parte superior
+        frame.add(scrollPane, BorderLayout.CENTER); // Tabla en el centro
+        frame.add(panelInferior, BorderLayout.SOUTH); // Botones en la parte inferior
     }
 
     public void mostrar() {
@@ -142,4 +192,20 @@ public class TablaView {
             JOptionPane.showMessageDialog(frame, "El nombre de la tarea no puede estar vacío.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
+
+    private void mostrarRelaciones() {
+        // Convertir los datos de la tabla a una lista de Tareas
+        ArrayList<Tarea> tareas = new ArrayList<>();
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            String nombre = (String) tableModel.getValueAt(i, 0);
+            int tiempo = (int) tableModel.getValueAt(i, 1);
+            String precedencia = (String) tableModel.getValueAt(i, 2);
+            tareas.add(new Tarea(nombre, tiempo, precedencia));
+        }
+
+        // Mostrar la ventana de relaciones
+        RelacionesView relacionesView = new RelacionesView(tareas);
+        relacionesView.mostrar();
+    }
 }
+
